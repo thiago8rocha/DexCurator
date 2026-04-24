@@ -2554,3 +2554,71 @@ Map<String, double> calculateWeaknesses(List<String> types) {
 
 // função com _ para compatibilidade interna
 Map<String, double> _calculateWeaknesses(List<String> types) => calculateWeaknesses(types);
+
+// ─── LOCALIZAÇÃO: NOME DO MÉTODO ─────────────────────────────────
+
+String encounterMethodPt(String method) => switch (method) {
+  'walk'       => 'Caminhando',
+  'surf'       => 'Surfando',
+  'old-rod'    => 'Vara Velha',
+  'good-rod'   => 'Vara Boa',
+  'super-rod'  => 'Super Vara',
+  'gift'       => 'Presente',
+  'only-one'   => 'Único',
+  'rock-smash' => 'Quebra-Pedra',
+  'headbutt'   => 'Headbutt',
+  'pokeradar'  => 'PokéRadar',
+  'slot2'      => 'Slot 2',
+  'trade'      => 'Troca',
+  'special'    => 'Especial',
+  _            => method.split('-').map((w) =>
+      w.isEmpty ? '' : w[0].toUpperCase() + w.substring(1)).join(' '),
+};
+
+// ─── WIDGET: LINHA DE LOCALIZAÇÃO ────────────────────────────────
+
+class EncounterRow extends StatelessWidget {
+  final Map<String, dynamic> enc;
+  final List<String> pokemonTypes;
+
+  const EncounterRow({super.key, required this.enc, required this.pokemonTypes});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme   = Theme.of(context).colorScheme;
+    final location = enc['location'] as String;
+    final method   = enc['method']   as String;
+    final minLv    = enc['minLevel'] as int;
+    final maxLv    = enc['maxLevel'] as int;
+    final levels   = minLv == maxLv ? 'Nv. $minLv' : 'Nv. $minLv–$maxLv';
+    final methodPt = encounterMethodPt(method);
+    final typeKey  = pokemonTypes.isNotEmpty ? pokemonTypes[0].toLowerCase() : 'normal';
+    final typeColor = typeColors[typeKey] ?? const Color(0xFF888888);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(children: [
+        Expanded(
+          child: Text(location,
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500,
+                color: scheme.onSurface)),
+        ),
+        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+          decoration: BoxDecoration(
+            color: typeColor.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(4),
+            border: Border.all(color: typeColor.withOpacity(0.4), width: 0.5),
+          ),
+          child: Text(methodPt,
+            style: TextStyle(fontSize: 11, color: typeColor,
+                fontWeight: FontWeight.w600)),
+        ),
+        const SizedBox(width: 8),
+        Text(levels,
+          style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
+      ]),
+    );
+  }
+}

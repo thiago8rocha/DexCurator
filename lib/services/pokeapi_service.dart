@@ -434,6 +434,100 @@ class PokeApiService {
     }
     return result;
   }
+
+  // ─── LOCALIZAÇÕES ────────────────────────────────────────────────
+
+  static const Map<String, String> _versionToPokedexId = {
+    'red': 'red___blue',           'blue': 'red___blue',
+    'yellow': 'yellow',
+    'gold': 'gold___silver',       'silver': 'gold___silver',
+    'crystal': 'crystal',
+    'ruby': 'ruby___sapphire',     'sapphire': 'ruby___sapphire',
+    'firered': 'firered___leafgreen_(gba)',
+    'leafgreen': 'firered___leafgreen_(gba)',
+    'emerald': 'emerald',
+    'diamond': 'diamond___pearl',  'pearl': 'diamond___pearl',
+    'platinum': 'platinum',
+    'heartgold': 'heartgold___soulsilver',
+    'soulsilver': 'heartgold___soulsilver',
+    'black': 'black___white',      'white': 'black___white',
+    'black-2': 'black_2___white_2','white-2': 'black_2___white_2',
+    'x': 'x___y',                  'y': 'x___y',
+    'omega-ruby': 'omega_ruby___alpha_sapphire',
+    'alpha-sapphire': 'omega_ruby___alpha_sapphire',
+    'sun': 'sun___moon',           'moon': 'sun___moon',
+    'ultra-sun': 'ultra_sun___ultra_moon',
+    'ultra-moon': 'ultra_sun___ultra_moon',
+    'lets-go-pikachu': "let's_go_pikachu___eevee",
+    'lets-go-eevee': "let's_go_pikachu___eevee",
+    'sword': 'sword___shield',     'shield': 'sword___shield',
+    'brilliant-diamond': 'brilliant_diamond___shining_pearl',
+    'shining-pearl': 'brilliant_diamond___shining_pearl',
+    'legends-arceus': 'legends:_arceus',
+    'scarlet': 'scarlet___violet', 'violet': 'scarlet___violet',
+  };
+
+  static String humanizeLocationArea(String name) {
+    return name
+        .replaceAll(RegExp(r'-area(-\d+)?$'), '')
+        .split('-')
+        .map((w) => w.isEmpty ? '' : w[0].toUpperCase() + w.substring(1))
+        .join(' ');
+  }
+
+  /// Retorna localizações agrupadas por pokedexId.
+  /// Cada entrada: {location, method, minLevel, maxLevel, chance}
+  Future<Map<String, List<Map<String, dynamic>>>> fetchEncounters(int id) async {
+    try {
+      final res = await http
+          .get(Uri.parse('$_base/pokemon/$id/encounters'))
+          .timeout(const Duration(seconds: 10));
+      if (res.statusCode != 200) return {};
+      final list = json.decode(res.body) as List<dynamic>;
+      final result = <String, List<Map<String, dynamic>>>{};
+
+      for (final area in list) {
+        final location = humanizeLocationArea(
+            area['location_area']['name'] as String);
+        for (final vd in area['version_details'] as List<dynamic>) {
+          final dexId = _versionToPokedexId[vd['version']['name'] as String];
+          if (dexId == null) continue;
+          final details = vd['encounter_details'] as List<dynamic>;
+          if (details.isEmpty) continue;
+
+          // Agrega min/max level e pega o método de maior chance
+          int minLv = 100, maxLv = 0, bestChance = 0;
+          String method = 'walk';
+          for (final enc in details) {
+            final ml = enc['min_level'] as int;
+            final mx = enc['max_level'] as int;
+            final ch = enc['chance'] as int;
+            if (ml < minLv) minLv = ml;
+            if (mx > maxLv) maxLv = mx;
+            if (ch > bestChance) {
+              bestChance = ch;
+              method = enc['method']['name'] as String;
+            }
+          }
+
+          result.putIfAbsent(dexId, () => []);
+          final list2 = result[dexId]!;
+          if (!list2.any((e) => e['location'] == location && e['method'] == method)) {
+            list2.add({
+              'location': location,
+              'method': method,
+              'minLevel': minLv,
+              'maxLevel': maxLv,
+              'chance': bestChance,
+            });
+          }
+        }
+      }
+      return result;
+    } catch (_) {
+      return {};
+    }
+  }
 }
 
 class _PokedexEntry {
