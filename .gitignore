@@ -1,0 +1,72 @@
+# ─── Claude Code ─────────────────────────────────────────────────
+CLAUDE.md
+
+# ─── Miscellaneous ───────────────────────────────────────────────
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# ─── IDEs e Editores ─────────────────────────────────────────────
+# IntelliJ / Android Studio
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# VS Code (descomente se não quiser versionar .vscode/)
+#.vscode/
+
+# Cursor IDE
+.cursor/
+
+# Claude Code local session data
+.claude/
+
+# ─── Flutter / Dart / Pub ────────────────────────────────────────
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+/coverage/
+
+# Metadata interno do Flutter CLI (não tem utilidade no repo)
+.metadata
+
+# ─── Android ─────────────────────────────────────────────────────
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Keystore e credenciais de assinatura — NUNCA commitar
+android/app/key.properties
+android/app/*.jks
+android/app/*.keystore
+android/local.properties
+
+# ─── Plataformas não suportadas (Android-only app) ───────────────
+# Estas pastas foram geradas pelo flutter create mas o DexCurator
+# é exclusivo para Android. Remova-as do tracking com:
+#   git rm -r --cached ios macos linux windows web
+/ios/
+/macos/
+/linux/
+/windows/
+/web/
+
+# ─── Symbolication / Obfuscation ────────────────────────────────
+app.*.symbols
+app.*.map.json
+/test/

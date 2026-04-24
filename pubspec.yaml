@@ -1,0 +1,39 @@
+name: dexcurator
+description: "DexCurator - Pokédex Tracker para múltiplos jogos Pokémon"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  http: ^1.6.0
+  shared_preferences: ^2.5.4
+  path_provider: ^2.1.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/pokopia/specialties/
+    - assets/pokopia/habitats/
+    - assets/pokopia/habitats/event/
+    - assets/types/
+    - assets/categories/
+    - assets/data/
+    - assets/data/dex/
+    - assets/sprites/artwork/
+    - assets/sprites/home/
+    - assets/sprites/pixel/
+    - assets/pocket/boosters/
+    - assets/pocket/energy/
+    - assets/items/sprites/
