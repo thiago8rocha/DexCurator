@@ -2580,12 +2580,55 @@ String encounterMethodPt(String method) {
   return method[0].toUpperCase() + method.substring(1);
 }
 
-/// Normaliza nomes de localização: traduz "Route N" → "Rota N".
-/// Outros nomes permanecem como estão (são substantivos próprios do jogo).
 String normalizeLocationName(String location) {
-  final routeMatch = RegExp(r'^Route\s+(\d+)(.*)$', caseSensitive: false).firstMatch(location);
-  if (routeMatch != null) return 'Rota ${routeMatch.group(1)}${routeMatch.group(2)}';
-  return location;
+  var s = location;
+
+  // Route N → Rota N
+  s = s.replaceAllMapped(
+    RegExp(r'\bRoute\s+(\d+)\b', caseSensitive: false),
+    (m) => 'Rota ${m.group(1)}',
+  );
+
+  // Transfer phrases (before generic Transfer from)
+  s = s.replaceFirst('Transfer or receive from event', 'Transferência ou evento');
+  s = s.replaceFirst('Transfer required', 'Transferência necessária');
+  s = s.replaceFirst(RegExp(r'^Transfer (?:from|through) '), 'Via ');
+
+  // Trade in X → Troca em X
+  s = s.replaceFirstMapped(
+    RegExp(r'^[Tt]rade in (.+)$'),
+    (m) => 'Troca em ${m.group(1)}',
+  );
+  // Trade from X → Troca de X
+  s = s.replaceFirstMapped(
+    RegExp(r'^[Tt]rade from (.+)$'),
+    (m) => 'Troca de ${m.group(1)}',
+  );
+
+  // Gift from X in Y (before generic Gift from X)
+  s = s.replaceFirstMapped(
+    RegExp(r'^Gift from (.+?) in ([^\n]+)'),
+    (m) => 'Presente de ${m.group(1)} em ${m.group(2)}',
+  );
+  // Gift from X
+  s = s.replaceFirst(RegExp(r'^Gift from '), 'Presente de ');
+
+  // Event / Receive
+  s = s.replaceFirst('Receive from event', 'Recebido por evento');
+  if (s == 'Event Only') return 'Somente evento';
+  if (s == 'Event Raid') return 'Raid de evento';
+  if (s == 'Mystery Gift Quest') return 'Quest de Mystery Gift';
+  if (s == 'Pokemon League') return 'Liga Pokémon';
+
+  // Max Raid Battle prefixes
+  s = s.replaceAll('Gigantamax Raid Battles:', 'Raids Gigamax:');
+  s = s.replaceAll('Max Raid Battles:', 'Raids:');
+
+  // Pokemon proper nouns (partial)
+  s = s.replaceFirst('Pokemon Mansion', 'Mansão Pokémon');
+  s = s.replaceFirst('Pokemon Tower', 'Torre Pokémon');
+
+  return s;
 }
 
 String encounterTimePt(String time) {
@@ -2643,8 +2686,11 @@ class EncounterRow extends StatelessWidget {
     final weather  = enc['weather'] as String? ?? '';
 
     final location = normalizeLocationName(rawLoc);
-    final isGift   = _giftMethods.contains(method);
-    final display  = isGift ? 'Presente em $location' : location;
+    final isGift   = _giftMethods.contains(method) || location.startsWith('Presente de');
+    // Only prefix when location is a plain place name (not already a full description)
+    final display  = (_giftMethods.contains(method) && !location.startsWith('Presente'))
+        ? 'Presente em $location'
+        : location;
 
     final tags = <String>[];
     if (time.isNotEmpty)    tags.add(encounterTimePt(time));
