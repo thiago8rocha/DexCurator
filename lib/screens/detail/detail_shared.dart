@@ -2589,10 +2589,55 @@ String normalizeLocationName(String location) {
     (m) => 'Rota ${m.group(1)}',
   );
 
-  // Transfer phrases (before generic Transfer from)
+  // Hatch from Egg [in/at X]
+  s = s.replaceFirstMapped(
+    RegExp(r'^Hatch(?:ed)? from [Ee]gg(?:\s+(?:in|at)\s+(.+))?$'),
+    (m) => m.group(1) != null ? 'Chocar ovo em ${m.group(1)}' : 'Chocar ovo',
+  );
+
+  // Revive from / Revive a X Fossil
+  s = s.replaceFirstMapped(
+    RegExp(r'^Revive(?:\s+a?)?\s+(.+?)\s+[Ff]ossil$'),
+    (m) => 'Reviver: Fóssil ${m.group(1)}',
+  );
+
+  // Soaring in the Sky
+  s = s.replaceFirst('Soaring in the Sky', 'Voando no Céu');
+
+  // Gift in X
+  s = s.replaceFirstMapped(
+    RegExp(r'^Gift in (.+)$'),
+    (m) => 'Presente em ${m.group(1)}',
+  );
+
+  // (Gift - From X) inline
+  s = s.replaceAllMapped(
+    RegExp(r'\(Gift - From (.+?)\)'),
+    (m) => '(Presente de ${m.group(1)})',
+  );
+
+  // QR Code Required
+  s = s.replaceAll('(QR Code Required)', '(QR Code necessário)');
+  s = s.replaceAll('QR Code Required', 'QR Code necessário');
+
+  // Specific Gen-I transfer strings (before generic Transfer from)
+  s = s.replaceFirst(
+    'Transfer from Red, Green, Blue or Yellow', 'Via Red, Green, Blue ou Yellow');
+  s = s.replaceFirst(
+    'Transfer from Red, Green, Blue, or Yellow', 'Via Red, Green, Blue ou Yellow');
+  s = s.replaceFirst(
+    'Transfer from Gold, Silver, or Crystal', 'Via Gold, Silver ou Crystal');
+
+  // Transfer phrases (generic, after specifics)
   s = s.replaceFirst('Transfer or receive from event', 'Transferência ou evento');
   s = s.replaceFirst('Transfer required', 'Transferência necessária');
   s = s.replaceFirst(RegExp(r'^Transfer (?:from|through) '), 'Via ');
+
+  // Migrate from X
+  s = s.replaceFirstMapped(
+    RegExp(r'^Migrate(?:d)? from (.+)$'),
+    (m) => 'Via ${m.group(1)}',
+  );
 
   // Trade in X → Troca em X
   s = s.replaceFirstMapped(
@@ -2624,9 +2669,12 @@ String normalizeLocationName(String location) {
   s = s.replaceAll('Gigantamax Raid Battles:', 'Raids Gigamax:');
   s = s.replaceAll('Max Raid Battles:', 'Raids:');
 
-  // Pokemon proper nouns (partial)
+  // Pokemon proper nouns
+  s = s.replaceAll('Pokemon Center', 'Centro Pokémon');
   s = s.replaceFirst('Pokemon Mansion', 'Mansão Pokémon');
   s = s.replaceFirst('Pokemon Tower', 'Torre Pokémon');
+  s = s.replaceFirst('Safari Zone', 'Zona Safari');
+  s = s.replaceFirst('Pokemon Ranch', 'Fazenda Pokémon');
 
   return s;
 }
@@ -2677,20 +2725,52 @@ class EncounterRow extends StatelessWidget {
     'Starter Pokemon', 'Starter Pokémon',
   };
 
+  // Key: 'method|rawLocation' → quem dá o presente
+  static const _giftGiverForLocation = <String, String>{
+    'Starter Pokemon|Lumiose City':         'do Prof. Sycamore',
+    'Starter Pokémon|Lumiose City':         'do Prof. Sycamore',
+    'Gift|Lumiose City':                    'do Prof. Sycamore',
+    'Starter Pokemon|Pallet Town':          'do Prof. Oak',
+    'Starter Pokémon|Pallet Town':          'do Prof. Oak',
+    'Gift|Pallet Town':                     'do Prof. Oak',
+    'Starter Pokemon|New Bark Town':        'do Prof. Elm',
+    'Starter Pokémon|New Bark Town':        'do Prof. Elm',
+    'Starter Pokemon|Littleroot Town':      'do Prof. Birch',
+    'Starter Pokémon|Littleroot Town':      'do Prof. Birch',
+    'Starter Pokemon|Twinleaf Town':        'do Prof. Rowan',
+    'Starter Pokémon|Twinleaf Town':        'do Prof. Rowan',
+    'Starter Pokemon|Nuvema Town':          'do Prof. Juniper',
+    'Starter Pokémon|Nuvema Town':          'do Prof. Juniper',
+    'Starter Pokemon|Aspertia City':        'do Prof. Juniper',
+    'Starter Pokémon|Aspertia City':        'do Prof. Juniper',
+    'Starter Pokemon|Iki Town':             'do Prof. Kukui',
+    'Starter Pokémon|Iki Town':             'do Prof. Kukui',
+    'Starter Pokemon|Postwick':             'de Leon',
+    'Starter Pokémon|Postwick':             'de Leon',
+    'Starter Pokemon|Cabo Poco':            'do Prof. Sada/Turo',
+    'Starter Pokémon|Cabo Poco':            'do Prof. Sada/Turo',
+  };
+
   @override
   Widget build(BuildContext context) {
-    final scheme   = Theme.of(context).colorScheme;
-    final rawLoc   = enc['location'] as String? ?? '';
-    final method   = enc['method']  as String? ?? '';
-    final time     = enc['time']    as String? ?? '';
-    final weather  = enc['weather'] as String? ?? '';
+    final scheme  = Theme.of(context).colorScheme;
+    final rawLoc  = enc['location'] as String? ?? '';
+    final method  = enc['method']  as String? ?? '';
+    final time    = enc['time']    as String? ?? '';
+    final weather = enc['weather'] as String? ?? '';
 
     final location = normalizeLocationName(rawLoc);
     final isGift   = _giftMethods.contains(method) || location.startsWith('Presente de');
-    // Only prefix when location is a plain place name (not already a full description)
-    final display  = (_giftMethods.contains(method) && !location.startsWith('Presente'))
-        ? 'Presente em $location'
-        : location;
+
+    String display;
+    if (_giftMethods.contains(method) && !location.startsWith('Presente')) {
+      final giver = _giftGiverForLocation['$method|$rawLoc'];
+      display = giver != null
+          ? 'Presente $giver em $location'
+          : 'Presente em $location';
+    } else {
+      display = location;
+    }
 
     final tags = <String>[];
     if (time.isNotEmpty)    tags.add(encounterTimePt(time));
@@ -2703,7 +2783,8 @@ class EncounterRow extends StatelessWidget {
           style: TextStyle(
             fontSize: 13,
             fontWeight: FontWeight.w500,
-            color: isGift ? scheme.primary : scheme.onSurface,
+            fontStyle: isGift ? FontStyle.italic : FontStyle.normal,
+            color: scheme.onSurface,
           )),
         if (tags.isNotEmpty)
           Padding(

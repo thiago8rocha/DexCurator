@@ -271,6 +271,43 @@ class _NacionalDetailScreenState extends State<NacionalDetailScreen>
   }
 }
 
+// ─── ORDEM CRONOLÓGICA DE JOGOS ─────────────────────────────────
+
+const _kGameOrder = [
+  'red___blue', 'yellow', 'gold___silver', 'crystal',
+  'ruby___sapphire', 'firered___leafgreen_(gba)', 'emerald',
+  'diamond___pearl', 'platinum', 'heartgold___soulsilver',
+  'black___white', 'black_2___white_2', 'x___y', 'omega_ruby___alpha_sapphire',
+  'sun___moon', 'ultra_sun___ultra_moon', 'lets_go_pikachu___eevee',
+  'sword___shield', 'brilliant_diamond___shining_pearl', 'legends_arceus',
+  'scarlet___violet', 'legends_z-a',
+];
+
+const _kDexIdToGameName = <String, String>{
+  'red___blue':                        'Red / Blue',
+  'yellow':                            'Yellow',
+  'gold___silver':                     'Gold / Silver',
+  'crystal':                           'Crystal',
+  'ruby___sapphire':                   'Ruby / Sapphire',
+  'firered___leafgreen_(gba)':         'FireRed / LeafGreen',
+  'emerald':                           'Emerald',
+  'diamond___pearl':                   'Diamond / Pearl',
+  'platinum':                          'Platinum',
+  'heartgold___soulsilver':            'HeartGold / SoulSilver',
+  'black___white':                     'Black / White',
+  'black_2___white_2':                 'Black 2 / White 2',
+  'x___y':                             'X / Y',
+  'omega_ruby___alpha_sapphire':       'Omega Ruby / Alpha Sapphire',
+  'sun___moon':                        'Sun / Moon',
+  'ultra_sun___ultra_moon':            'Ultra Sun / Ultra Moon',
+  'lets_go_pikachu___eevee':           "Let's Go Pikachu / Eevee",
+  'sword___shield':                    'Sword / Shield',
+  'brilliant_diamond___shining_pearl': 'Brilliant Diamond / Shining Pearl',
+  'legends_arceus':                    'Legends: Arceus',
+  'scarlet___violet':                  'Scarlet / Violet',
+  'legends_z-a':                       'Legends: Z-A',
+};
+
 // ─── ABA ABOUT NACIONAL ──────────────────────────────────────────
 
 class _NacionalInfoTab extends StatelessWidget {
@@ -361,12 +398,13 @@ class _NacionalInfoTab extends StatelessWidget {
   Widget _buildEncountersNacional(BuildContext context) {
     if (loadingEncounters) return const SizedBox(height: 40);
 
-    const excluded = {'pokémon_go', 'pokopia'};
     final rows = <Widget>[];
 
-    for (final gameName in availableGames) {
-      final dexId = _kGameToPokedexId[gameName];
-      if (dexId == null || excluded.contains(dexId)) continue;
+    for (final dexId in _kGameOrder) {
+      if (!encounters.containsKey(dexId)) continue;
+      if (activePokedexIds != null && !activePokedexIds!.contains(dexId)) continue;
+
+      final gameName = _kDexIdToGameName[dexId] ?? dexId;
 
       if (rows.isNotEmpty) rows.add(const Divider(height: 12, thickness: 0.5));
 
@@ -386,7 +424,6 @@ class _NacionalInfoTab extends StatelessWidget {
               color: Theme.of(context).colorScheme.onSurfaceVariant)),
         ));
       } else {
-        // Deduplicate by location+method+level+rarity+time+weather
         final seen = <String>{};
         final merged = <Map<String, dynamic>>[];
         for (final loc in locs) {
