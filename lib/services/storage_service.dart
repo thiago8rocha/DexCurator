@@ -15,7 +15,6 @@ class StorageService {
   static const String _bilingualKey     = 'bilingual_mode';
   static const String _disclaimerKey    = 'disclaimer_seen';
   static const String _lastPokedexKey   = 'last_pokedex_id';
-  static const String _showFormsKey     = 'show_forms_in_list';
 
   // ── Cache de instância ──────────────────────────────────────────
   // Evita criar uma nova instância de SharedPreferences a cada chamada.
@@ -141,16 +140,25 @@ class StorageService {
     return map;
   }
 
-  // ─── MOSTRAR FORMAS NA LISTA ────────────────────────────────────
+  // ─── CATEGORIAS DE FORMAS ────────────────────────────��──────────
 
-  Future<bool> getShowFormsInList() async {
+  static const _formCategoryKeys = {
+    'mega':       'show_forms_mega',
+    'gigantamax': 'show_forms_gigantamax',
+    'regional':   'show_forms_regional',
+    'other':      'show_forms_other',
+  };
+
+  Future<bool> getFormCategoryEnabled(String category) async {
     final prefs = await _instance;
-    return prefs.getBool(_showFormsKey) ?? true;
+    final key = _formCategoryKeys[category] ?? 'show_forms_other';
+    return prefs.getBool(key) ?? true;
   }
 
-  Future<void> setShowFormsInList(bool show) async {
+  Future<void> setFormCategoryEnabled(String category, bool enabled) async {
     final prefs = await _instance;
-    await prefs.setBool(_showFormsKey, show);
+    final key = _formCategoryKeys[category] ?? 'show_forms_other';
+    await prefs.setBool(key, enabled);
   }
 
   // ─── CACHE DE ENTRIES ───────────────────────────────────────────

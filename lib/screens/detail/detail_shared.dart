@@ -2676,6 +2676,12 @@ String normalizeLocationName(String location) {
   s = s.replaceFirst('Safari Zone', 'Zona Safari');
   s = s.replaceFirst('Pokemon Ranch', 'Fazenda Pokémon');
 
+  // Lake X → Lago X
+  s = s.replaceAllMapped(
+    RegExp(r'\bLake\s+(\S+)\b'),
+    (m) => 'Lago ${m.group(1)}',
+  );
+
   // X Forest → Floresta de X
   s = s.replaceAllMapped(
     RegExp(r'(\S+) Forest\b'),
@@ -2719,97 +2725,6 @@ String encounterWeatherPt(String weather) {
     'Thunderstorm': 'Tempestade', 'Waterfall Obtained': 'Waterfall Obtida',
   };
   return map[weather] ?? weather;
-}
-
-// ─── WIDGET: LINHA DE LOCALIZAÇÃO ────────────────────────────────
-
-class EncounterRow extends StatelessWidget {
-  final Map<String, dynamic> enc;
-  final List<String> pokemonTypes;
-
-  const EncounterRow({super.key, required this.enc, required this.pokemonTypes});
-
-  static const _giftMethods = {
-    'gift', 'Gift', 'gift-egg', 'Gift Egg',
-    'Starter Pokemon', 'Starter Pokémon',
-  };
-
-  // Key: 'method|rawLocation' → quem dá o presente
-  static const _giftGiverForLocation = <String, String>{
-    'Starter Pokemon|Lumiose City':         'do Prof. Sycamore',
-    'Starter Pokémon|Lumiose City':         'do Prof. Sycamore',
-    'Gift|Lumiose City':                    'do Prof. Sycamore',
-    'Starter Pokemon|Pallet Town':          'do Prof. Oak',
-    'Starter Pokémon|Pallet Town':          'do Prof. Oak',
-    'Gift|Pallet Town':                     'do Prof. Oak',
-    'Starter Pokemon|New Bark Town':        'do Prof. Elm',
-    'Starter Pokémon|New Bark Town':        'do Prof. Elm',
-    'Starter Pokemon|Littleroot Town':      'do Prof. Birch',
-    'Starter Pokémon|Littleroot Town':      'do Prof. Birch',
-    'Starter Pokemon|Twinleaf Town':        'do Prof. Rowan',
-    'Starter Pokémon|Twinleaf Town':        'do Prof. Rowan',
-    'Starter Pokemon|Nuvema Town':          'do Prof. Juniper',
-    'Starter Pokémon|Nuvema Town':          'do Prof. Juniper',
-    'Starter Pokemon|Aspertia City':        'do Prof. Juniper',
-    'Starter Pokémon|Aspertia City':        'do Prof. Juniper',
-    'Starter Pokemon|Iki Town':             'do Prof. Kukui',
-    'Starter Pokémon|Iki Town':             'do Prof. Kukui',
-    'Starter Pokemon|Postwick':             'de Leon',
-    'Starter Pokémon|Postwick':             'de Leon',
-    'Starter Pokemon|Cabo Poco':            'do Prof. Sada/Turo',
-    'Starter Pokémon|Cabo Poco':            'do Prof. Sada/Turo',
-  };
-
-  @override
-  Widget build(BuildContext context) {
-    final scheme  = Theme.of(context).colorScheme;
-    final rawLoc  = enc['location'] as String? ?? '';
-    final method  = enc['method']  as String? ?? '';
-    final time    = enc['time']    as String? ?? '';
-    final weather = enc['weather'] as String? ?? '';
-
-    final location = normalizeLocationName(rawLoc);
-    final isGift   = _giftMethods.contains(method) || location.startsWith('Presente de');
-
-    String display;
-    if (_giftMethods.contains(method) && !location.startsWith('Presente')) {
-      final giver = _giftGiverForLocation['$method|$rawLoc'];
-      display = giver != null
-          ? 'Presente $giver em $location'
-          : 'Presente em $location';
-    } else {
-      display = location;
-    }
-
-    final tags = <String>[];
-    if (time.isNotEmpty) {
-      final t = encounterTimePt(time);
-      if (t != 'Dia' && t != 'Dia Todo' && t != 'Sempre') tags.add(t);
-    }
-    if (weather.isNotEmpty) {
-      final w = encounterWeatherPt(weather);
-      if (w != 'Dia' && w != 'Dia Todo') tags.add(w);
-    }
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 5),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(display,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-            fontStyle: isGift ? FontStyle.italic : FontStyle.normal,
-            color: scheme.onSurface,
-          )),
-        if (tags.isNotEmpty)
-          Padding(
-            padding: const EdgeInsets.only(top: 2),
-            child: Text(tags.join(' · '),
-              style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
-          ),
-      ]),
-    );
-  }
 }
 
 // ─── HELPERS COMPARTILHADOS: chip + sheet ────────────────────────
