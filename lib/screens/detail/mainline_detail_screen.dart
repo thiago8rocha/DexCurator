@@ -3,6 +3,7 @@ import 'package:dexcurator/models/pokemon.dart';
 import 'package:dexcurator/screens/detail/detail_shared.dart';
 import 'package:dexcurator/services/pokedex_data_service.dart';
 import 'package:dexcurator/services/pokeapi_service.dart';
+import 'package:dexcurator/services/location_service.dart';
 import 'package:dexcurator/translations.dart';
 
 class SwitchDetailScreen extends StatefulWidget {
@@ -48,6 +49,8 @@ class _SwitchDetailScreenState extends State<SwitchDetailScreen>
   List<Map<String, dynamic>> _movesEgg = [];
   bool _loading = true;
   List<Map<String, dynamic>> _flavorTexts = [];
+  List<Map<String, dynamic>> _encounters = [];
+  bool _loadingEncounters = true;
 
   bool get _hasMultipleForms => !_loading && _forms.length > 1;
 
@@ -101,6 +104,14 @@ class _SwitchDetailScreenState extends State<SwitchDetailScreen>
     // Carrega moves em background
     _api.fetchPokemon(id).then((d) {
       if (d != null && mounted) _parseMoves(d);
+    });
+
+    // Localizations from bundled asset
+    final locationSvc = LocationService.instance;
+    if (!locationSvc.isLoaded) await locationSvc.warmup();
+    if (mounted) setState(() {
+      _encounters = locationSvc.getLocations(id, widget.pokedexId);
+      _loadingEncounters = false;
     });
   }
 
@@ -183,6 +194,8 @@ class _SwitchDetailScreenState extends State<SwitchDetailScreen>
                 weight: _weight,
                 loading: _loading,
                 pokedexId: widget.pokedexId,
+                encounters: _encounters,
+                loadingEncounters: _loadingEncounters,
               ),
               StatusTab(pokemon: widget.pokemon),
               if (_hasMultipleForms) FormsTab(forms: _forms, loading: _loading),
@@ -203,12 +216,15 @@ class _SwitchInfoTab extends StatelessWidget {
   final List<Map<String, dynamic>> flavorTexts;
   final String category, height, weight, pokedexId;
   final bool loading;
+  final List<Map<String, dynamic>> encounters;
+  final bool loadingEncounters;
 
   const _SwitchInfoTab({
     required this.pokemon, required this.abilities, required this.evoChain,
     required this.flavorTexts, required this.category,
     required this.height, required this.weight,
     required this.loading, required this.pokedexId,
+    required this.encounters, required this.loadingEncounters,
   });
 
   @override
@@ -229,15 +245,6 @@ class _SwitchInfoTab extends StatelessWidget {
             loading: loading,
             pokedexId: pokedexId,
           ),
-        ),
-
-        const SizedBox(height: 16),
-
-        // ── Onde encontrar ──
-        SectionCard(
-          title: 'ONDE ENCONTRAR',
-          pokemonTypes: pokemon.types,
-          child: _whereToFindPlaceholder(context),
         ),
 
         const SizedBox(height: 16),
@@ -270,28 +277,34 @@ class _SwitchInfoTab extends StatelessWidget {
           ),
           const SizedBox(height: 16),
         ],
+
+        // ── Onde encontrar ──
+        SectionCard(
+          title: 'ONDE ENCONTRAR',
+          pokemonTypes: pokemon.types,
+          loading: loadingEncounters,
+          child: _buildEncounters(context),
+        ),
+
+        const SizedBox(height: 16),
       ]),
     );
   }
 
-  Widget _whereToFindPlaceholder(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: neutralBg(context),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: neutralBorder(context), width: 0.5),
-      ),
-      child: Row(children: [
-        Icon(Icons.info_outline, size: 15,
+  Widget _buildEncounters(BuildContext context) {
+    if (loadingEncounters) return const SizedBox(height: 40);
+    if (encounters.isEmpty) {
+      return Text(
+        'Sem registro neste jogo.',
+        style: TextStyle(fontSize: 12,
           color: Theme.of(context).colorScheme.onSurfaceVariant),
-        const SizedBox(width: 8),
-        Expanded(child: Text(
-          'Localizações específicas por jogo serão adicionadas via curadoria.',
-          style: TextStyle(fontSize: 12,
-            color: Theme.of(context).colorScheme.onSurfaceVariant, height: 1.4),
-        )),
-      ]),
+      );
+    }
+    final groups = groupEncounters(encounters);
+    return Column(
+      children: groups.values
+          .map((g) => LocationRow(entries: g, pokemonTypes: pokemon.types))
+          .toList(),
     );
   }
 }

@@ -2808,6 +2808,149 @@ String _translateMethod(String method) {
   return map[method] ?? (method.isEmpty ? 'Selvagem' : method);
 }
 
+// ─── HELPER: AGRUPAR ENCOUNTERS ──────────────────────────────────
+
+Map<String, List<Map<String, dynamic>>> groupEncounters(
+    List<Map<String, dynamic>> entries) {
+  final groups = <String, List<Map<String, dynamic>>>{};
+  for (final e in entries) {
+    final key = '${e['location']}|${e['method']}|${e['time']}|${e['weather']}';
+    groups.putIfAbsent(key, () => []).add(e);
+  }
+  return groups;
+}
+
+String _formatGameVersion(String game) {
+  if (game.isEmpty) return '';
+  return game[0].toUpperCase() + game.substring(1);
+}
+
+// ─── WIDGET: LINHA DE LOCALIZAÇÃO (ESTILO MASTERDEX) ─────────────
+
+class LocationRow extends StatelessWidget {
+  final List<Map<String, dynamic>> entries;
+  final List<String> pokemonTypes;
+
+  const LocationRow({super.key, required this.entries, required this.pokemonTypes});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    final first  = entries.first;
+    final location = _locationChipText(first);
+    final method   = _translateMethod(first['method'] as String? ?? '');
+    final time     = encounterTimePt(first['time'] as String? ?? '');
+    final weather  = encounterWeatherPt(first['weather'] as String? ?? '');
+
+    // Agrupa versões por (minLevel, maxLevel, rarity) para detectar se as stats diferem
+    final statGroups = <String, List<String>>{};
+    for (final e in entries) {
+      final statsKey = '${e['minLevel']}|${e['maxLevel']}|${e['rarity']}';
+      final game = _formatGameVersion(e['game'] as String? ?? '');
+      statGroups.putIfAbsent(statsKey, () => []);
+      if (game.isNotEmpty && !statGroups[statsKey]!.contains(game)) {
+        statGroups[statsKey]!.add(game);
+      }
+    }
+
+    final subtitleParts = <String>[];
+    if (method.isNotEmpty) subtitleParts.add(method);
+    if (time.isNotEmpty && time != 'Dia' && time != 'Dia Todo' && time != 'Sempre') {
+      subtitleParts.add(time);
+    }
+    if (weather.isNotEmpty && weather != 'Dia' && weather != 'Dia Todo') {
+      subtitleParts.add(weather);
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: scheme.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: scheme.outlineVariant, width: 0.8),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(location,
+              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600,
+                color: scheme.onSurface)),
+            if (subtitleParts.isNotEmpty) ...[
+              const SizedBox(height: 3),
+              Text(subtitleParts.join(' · '),
+                style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
+            ],
+            const SizedBox(height: 6),
+            ...statGroups.entries.map((sg) {
+              final parts    = sg.key.split('|');
+              final minLevel = parts[0];
+              final maxLevel = parts[1];
+              final rarity   = parts[2];
+              final games    = sg.value;
+
+              final levelStr = minLevel.isNotEmpty
+                  ? (maxLevel.isNotEmpty && maxLevel != minLevel
+                      ? 'Lv. $minLevel–$maxLevel'
+                      : 'Lv. $minLevel')
+                  : '';
+              final rarityStr = rarity.isNotEmpty ? '$rarity%' : '';
+
+              return Padding(
+                padding: const EdgeInsets.only(top: 2),
+                child: Row(
+                  children: [
+                    if (games.isNotEmpty)
+                      Wrap(
+                        spacing: 4,
+                        children: games.map((g) => _VersionTag(game: g)).toList(),
+                      ),
+                    if (games.isNotEmpty && (levelStr.isNotEmpty || rarityStr.isNotEmpty))
+                      const SizedBox(width: 8),
+                    if (levelStr.isNotEmpty)
+                      Text(levelStr,
+                        style: TextStyle(fontSize: 11, color: scheme.onSurface)),
+                    if (levelStr.isNotEmpty && rarityStr.isNotEmpty)
+                      Text(' · ',
+                        style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
+                    if (rarityStr.isNotEmpty)
+                      Text(rarityStr,
+                        style: TextStyle(fontSize: 11, color: scheme.onSurfaceVariant)),
+                  ],
+                ),
+              );
+            }),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _VersionTag extends StatelessWidget {
+  final String game;
+  const _VersionTag({required this.game});
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+      decoration: BoxDecoration(
+        color: scheme.primaryContainer,
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Text(game,
+        style: TextStyle(
+          fontSize: 10,
+          fontWeight: FontWeight.w600,
+          color: scheme.onPrimaryContainer,
+        )),
+    );
+  }
+}
+
 // ─── WIDGET: CHIP CLICÁVEL DE LOCALIZAÇÃO ────────────────────────
 
 class LocationChip extends StatelessWidget {
