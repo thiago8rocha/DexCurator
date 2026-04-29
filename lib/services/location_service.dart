@@ -75,14 +75,18 @@ class LocationService {
   }
 
   Future<void> _doWarmup() async {
-    final raw = await rootBundle.loadString('assets/locations.json');
-    if (kDebugMode) {
-      _data = json.decode(raw) as Map<String, dynamic>;
-    } else {
-      _data = await compute<String, Map<String, dynamic>>(
-        (s) => json.decode(s) as Map<String, dynamic>,
-        raw,
-      );
+    try {
+      final raw = await rootBundle.loadString('assets/locations.json');
+      if (kDebugMode) {
+        _data = json.decode(raw) as Map<String, dynamic>;
+      } else {
+        _data = await compute<String, Map<String, dynamic>>(
+          (s) => json.decode(s) as Map<String, dynamic>,
+          raw,
+        );
+      }
+    } catch (_) {
+      _data = {};
     }
   }
 

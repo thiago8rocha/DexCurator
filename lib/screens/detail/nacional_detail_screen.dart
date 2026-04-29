@@ -142,14 +142,18 @@ class _NacionalDetailScreenState extends State<NacionalDetailScreen>
     });
 
     // Localizations from bundled asset
-    final locationSvc = LocationService.instance;
-    if (!locationSvc.isLoaded) await locationSvc.warmup();
-    if (mounted) {
-      final enc = <String, List<Map<String, dynamic>>>{};
-      for (final dexId in locationSvc.getAvailableDexIds(id)) {
-        enc[dexId] = locationSvc.getLocations(id, dexId);
+    try {
+      final locationSvc = LocationService.instance;
+      if (!locationSvc.isLoaded) await locationSvc.warmup();
+      if (mounted) {
+        final enc = <String, List<Map<String, dynamic>>>{};
+        for (final dexId in locationSvc.getAvailableDexIds(id)) {
+          enc[dexId] = locationSvc.getLocations(id, dexId);
+        }
+        setState(() { _encounters = enc; _loadingEncounters = false; });
       }
-      setState(() { _encounters = enc; _loadingEncounters = false; });
+    } catch (_) {
+      if (mounted) setState(() => _loadingEncounters = false);
     }
   }
 
@@ -279,8 +283,8 @@ const _kGameOrder = [
   'diamond___pearl', 'platinum', 'heartgold___soulsilver',
   'black___white', 'black_2___white_2', 'x___y', 'omega_ruby___alpha_sapphire',
   'sun___moon', 'ultra_sun___ultra_moon', 'lets_go_pikachu___eevee',
-  'sword___shield', 'brilliant_diamond___shining_pearl', 'legends_arceus',
-  'scarlet___violet', 'legends_z-a',
+  'sword___shield', 'brilliant_diamond___shining_pearl', 'legends:_arceus',
+  'scarlet___violet', 'legends:_z-a',
 ];
 
 const _kDexIdToGameName = <String, String>{
@@ -303,9 +307,9 @@ const _kDexIdToGameName = <String, String>{
   'lets_go_pikachu___eevee':           "Let's Go Pikachu / Eevee",
   'sword___shield':                    'Sword / Shield',
   'brilliant_diamond___shining_pearl': 'Brilliant Diamond / Shining Pearl',
-  'legends_arceus':                    'Legends: Arceus',
+  'legends:_arceus':                   'Legends: Arceus',
   'scarlet___violet':                  'Scarlet / Violet',
-  'legends_z-a':                       'Legends: Z-A',
+  'legends:_z-a':                      'Legends: Z-A',
 };
 
 // ─── ABA ABOUT NACIONAL ──────────────────────────────────────────
