@@ -1510,12 +1510,10 @@ class FormsTab extends StatelessWidget {
         final name = f['name'] as String;
         final types = (f['types'] as List<dynamic>? ?? []).map((t) => t as String).toList();
         final game = f['game'] as String?;
-        final sprite = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/'
-            'sprites/pokemon/other/official-artwork/$id.png';
         final c1 = types.isNotEmpty ? typeColor(types[0]) : Colors.grey;
         final c2 = types.length > 1 ? typeColor(types[1]) : c1;
         return GestureDetector(
-          onTap: () => _showFormModal(ctx, id, name, types, game, sprite),
+          onTap: () => _showFormModal(ctx, id, name, types, game),
           child: Container(
             decoration: BoxDecoration(
               gradient: LinearGradient(
@@ -1526,8 +1524,13 @@ class FormsTab extends StatelessWidget {
               border: Border.all(color: c1.withOpacity(0.3), width: 0.8),
             ),
             child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
-              Image.network(sprite, width: 72, height: 72,
-                  errorBuilder: (_, __, ___) => const Icon(Icons.catching_pokemon, size: 50)),
+              id <= 1025
+                  ? Image.asset('assets/sprites/artwork/$id.webp', width: 72, height: 72,
+                      errorBuilder: (_, __, ___) => const Icon(Icons.catching_pokemon, size: 50))
+                  : Image.network(
+                      'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/$id.png',
+                      width: 72, height: 72,
+                      errorBuilder: (_, __, ___) => const Icon(Icons.catching_pokemon, size: 50)),
               const SizedBox(height: 6),
               Text(_formatFormName(name),
                 style: Theme.of(ctx).textTheme.labelSmall?.copyWith(
@@ -1551,7 +1554,7 @@ class FormsTab extends StatelessWidget {
   }
 
   void _showFormModal(BuildContext context, int id, String name,
-      List<String> types, String? game, String sprite) {
+      List<String> types, String? game) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final c1 = types.isNotEmpty ? typeColor(types[0]) : Colors.grey;
     final c2 = types.length > 1 ? typeColor(types[1]) : c1;
@@ -1574,10 +1577,17 @@ class FormsTab extends StatelessWidget {
             decoration: BoxDecoration(color: Theme.of(context).colorScheme.outlineVariant,
               borderRadius: BorderRadius.circular(2))),
           // Sprite solto, sem caixa
-          Image.network(sprite,
-            height: 220, fit: BoxFit.contain,
-            errorBuilder: (_, __, ___) =>
-              const Icon(Icons.catching_pokemon, size: 120)),
+          if (id <= 1025)
+            Image.asset('assets/sprites/artwork/$id.webp',
+              height: 220, fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) =>
+                const Icon(Icons.catching_pokemon, size: 120))
+          else
+            Image.network(
+              'https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/$id.png',
+              height: 220, fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) =>
+                const Icon(Icons.catching_pokemon, size: 120)),
           const SizedBox(height: 12),
           // Nome
           Text(_formatFormName(name),
@@ -2294,16 +2304,14 @@ class _EvoChainWidgetState extends State<EvoChainWidget> {
       final name = e['name'] as String;
       final displayName = name[0].toUpperCase() + name.substring(1);
       final numStr = '#${id.toString().padLeft(3, '0')}';
-      final sprite = 'https://raw.githubusercontent.com/PokeAPI/sprites/master/'
-          'sprites/pokemon/other/official-artwork/$id.png';
       final types = _typesCache[id] ?? [];
 
       ws.add(Expanded(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Image.network(
-              sprite,
+            Image.asset(
+              'assets/sprites/artwork/$id.webp',
               width: 64, height: 64,
               fit: BoxFit.contain,
               errorBuilder: (_, __, ___) =>

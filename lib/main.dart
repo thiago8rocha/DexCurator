@@ -44,9 +44,8 @@ void main() async {
 
   appThemeController.setTheme(savedThemeId, _themeModeFromId(savedThemeId));
 
-  // Carrega dados locais em isolates via compute() — não bloqueia a UI
-  await PokedexDataService.instance.load();
-  // Carrega dados de localização em background — não bloqueia o launch
+  // Dispara carregamentos em background — runApp() não espera por eles
+  PokedexDataService.instance.load();
   LocationService.instance.warmup();
 
   runApp(DexCuratorApp(showDisclaimer: !disclaimerSeen));
@@ -182,6 +181,11 @@ class _LastDexLoaderState extends State<_LastDexLoader> {
   }
 
   Future<void> _load() async {
+    // Aguarda PokedexDataService terminar o carregamento em background
+    while (!PokedexDataService.instance.isLoaded || !LocationService.instance.isLoaded) {
+      await Future.delayed(const Duration(milliseconds: 50));
+      if (!mounted) return;
+    }
     final lastId = await StorageService().getLastPokedexId();
     if (!mounted) return;
     final id = lastId ?? 'nacional';
@@ -202,6 +206,12 @@ class _LastDexLoaderState extends State<_LastDexLoader> {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(body: SizedBox.shrink());
+    return Scaffold(
+      body: Center(
+        child: CircularProgressIndicator(
+          color: Theme.of(context).colorScheme.primary,
+        ),
+      ),
+    );
   }
 }
