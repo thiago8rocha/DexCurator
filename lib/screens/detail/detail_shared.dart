@@ -2714,15 +2714,20 @@ String encounterTimePt(String time) {
 
 String encounterWeatherPt(String weather) {
   const map = {
+    'All Weather': '', 'No Weather': '',
     'Day': 'Dia', 'Morning': 'Manhã', 'Night': 'Noite', 'All Day': 'Dia Todo',
     'Beginning': 'Início', 'Defog Obtained': 'Defog Obtido',
     'Fog': 'Névoa', 'Icicle Badge Obtained': 'Medalha Icicle',
-    'Intense Sun': 'Sol Intenso', 'National Pokedex': 'Pokédex Nacional',
+    'Intense Sun': 'Sol Intenso', 'Harsh Sunlight': 'Sol Intenso',
+    'National Pokedex': 'Pokédex Nacional',
     'Normal Weather': 'Clima Normal', 'Overcast': 'Nublado',
-    'Raining': 'Chuva', 'Rare Spawn': 'Aparição Rara',
-    'Sandstorm': 'Tempestade de Areia', 'Snowing': 'Neve',
+    'Rain': 'Chuva', 'Raining': 'Chuva', 'Rare Spawn': 'Aparição Rara',
+    'Sandstorm': 'Tempestade de Areia',
+    'Snow': 'Neve', 'Snowing': 'Neve', 'Hail': 'Granizo',
     'Snowstorm': 'Nevasca', 'Strength Obtained': 'Strength Obtido',
+    'Sun': 'Sol', 'Clear': 'Limpo',
     'Thunderstorm': 'Tempestade', 'Waterfall Obtained': 'Waterfall Obtida',
+    'Windy': 'Ventoso', 'Cloudy': 'Nublado',
   };
   return map[weather] ?? weather;
 }
@@ -2874,7 +2879,43 @@ String _translateMethod(String method) {
     'Requires Kyogre & Groudon':     'Requer Kyogre & Groudon',
     'Requires Reshiram & Zekrom':    'Requer Reshiram & Zekrom',
     'Requires Tornadus & Thundurus': 'Requer Tornadus & Thundurus',
+    // Novos métodos do json de referência
+    'Walking':                       'Grama Alta',
+    'Walking (Overworld)':           'Mundo Aberto',
+    'Walking - Overworld':           'Mundo Aberto',
+    'Walking (Grass spots)':         'Manchas de Grama',
+    'Walking (SOS)':                 'Grama Alta (SOS)',
+    'Dark Grass':                    'Grama Escura',
+    'Surfing':                       'Surfando',
+    'Surfing (Overworld)':           'Errante (Surf)',
+    'Surfing (Spots)':               'Manchas de Surf',
+    'Fishing (Old Rod)':             'Vara Velha',
+    'Fishing (Good Rod)':            'Vara Boa',
+    'Fishing (Super Rod)':           'Super Vara',
+    'Fishing (Super Rod spots)':     'Manchas de Pesca (Super)',
+    'Using Good Rod':                'Vara Boa',
+    'Using Headbutt':                'Cabeçada',
+    'Headbutt (Special)':            'Cabeçada (Raro)',
+    'Using Rock Smash':              'Quebrar Pedra',
+    'Rocksmash':                     'Quebrar Pedra',
+    'Rough Terrain':                 'Terreno Irregular',
+    'Flying (Overworld)':            'Voando',
+    'Static (Overworld)':            'Encontro Fixo',
+    'Max Raid Den':                  'Raid Max Den',
+    'Wild Tera':                     'Tera Selvagem',
+    'Transfer':                      'Transferência',
+    'Time Capsule':                  'Cápsula do Tempo',
+    'Berry Pile':                    'Pilha de Bagas',
+    'Berry Piles':                   'Pilha de Bagas',
+    'Evolve':                        'Evolução',
+    'Glitch':                        'Glitch',
+    'Pokémon Bank':                  'Pokémon Bank',
+    'Shaking Trees':                 'Árvore Agitada',
   };
+  // Ignora entradas que são nomes de locais com método embutido (dados de raid)
+  if (method.contains('(Max Raid Battle)') || method.contains('(Max Raid Den)')) {
+    return 'Raid Max';
+  }
   return map[method] ?? (method.isEmpty ? 'Selvagem' : method);
 }
 
@@ -3042,18 +3083,21 @@ class LocationRow extends StatelessWidget {
     final scheme = Theme.of(context).colorScheme;
     final first  = entries.first;
     final location = _locationChipText(first);
-    final method   = _translateMethod(first['method'] as String? ?? '');
-    final time     = encounterTimePt(first['time'] as String? ?? '');
-    final weather  = encounterWeatherPt(first['weather'] as String? ?? '');
+    final rawMethod = first['method'] as String? ?? '';
+    final method    = _translateMethod(rawMethod);
+    final time      = encounterTimePt(first['time'] as String? ?? '');
+    final weather   = encounterWeatherPt(first['weather'] as String? ?? '');
 
-    // Agrupa versões por (minLevel, maxLevel, rarity) para detectar se as stats diferem
+    // Agrupa versões por (levels, rarity); cada entrada já carrega sua lista de games
     final statGroups = <String, List<String>>{};
     for (final e in entries) {
-      final statsKey = '${e['minLevel']}|${e['maxLevel']}|${e['rarity']}';
-      final game = _formatGameVersion(e['game'] as String? ?? '');
+      final statsKey = '${e['levels']}|${e['rarity']}';
+      final gamesList = (e['games'] as List?)?.cast<String>() ?? <String>[];
       statGroups.putIfAbsent(statsKey, () => []);
-      if (game.isNotEmpty && !statGroups[statsKey]!.contains(game)) {
-        statGroups[statsKey]!.add(game);
+      for (final g in gamesList) {
+        if (g.isNotEmpty && !statGroups[statsKey]!.contains(g)) {
+          statGroups[statsKey]!.add(g);
+        }
       }
     }
 
@@ -3088,18 +3132,13 @@ class LocationRow extends StatelessWidget {
             ],
             const SizedBox(height: 6),
             ...statGroups.entries.map((sg) {
-              final parts    = sg.key.split('|');
-              final minLevel = parts[0];
-              final maxLevel = parts[1];
-              final rarity   = parts[2];
-              final games    = sg.value;
+              final parts   = sg.key.split('|');
+              final levels  = parts[0];
+              final rarity  = parts[1];
+              final games   = sg.value;
 
-              final levelStr = minLevel.isNotEmpty
-                  ? (maxLevel.isNotEmpty && maxLevel != minLevel
-                      ? 'Lv. $minLevel–$maxLevel'
-                      : 'Lv. $minLevel')
-                  : '';
-              final rarityStr = rarity.isNotEmpty ? '$rarity%' : '';
+              final levelStr  = _formatLevels(levels);
+              final rarityStr = _formatRarity(rarity, rawMethod);
 
               return Padding(
                 padding: const EdgeInsets.only(top: 2),
@@ -3130,6 +3169,35 @@ class LocationRow extends StatelessWidget {
       ),
     );
   }
+}
+
+String _formatLevels(String levels) {
+  if (levels.isEmpty) return '';
+  if (levels.contains('-')) return 'Lv. ${levels.replaceAll('-', '–')}';
+  return 'Lv. $levels';
+}
+
+const _nonWildMethods = {
+  'Gift', 'gift', 'gift-egg', 'Gift Egg', 'Trade', 'trade', 'Transfer',
+  'Event', 'Evolve', 'Glitch', 'Time Capsule', 'Pokémon Bank', 'only-one',
+  'Starter Pokemon', 'Starter Pokémon', 'Pokémon Colosseum Bonus Disc (US)\nPokémon Channel (EU)',
+  'Floaroma Town (Only one*)',
+};
+
+String _formatRarity(String rarity, String method) {
+  if (rarity.isEmpty) return '';
+  if (_nonWildMethods.contains(method)) return '';
+  const textMap = {
+    'UNCOMMON': 'Incomum',
+    'LIMITED':  'Limitado',
+    'COMMON':   'Comum',
+    '?':        '?',
+  };
+  if (textMap.containsKey(rarity)) return textMap[rarity]!;
+  final num = double.tryParse(rarity);
+  if (num == null) return rarity;
+  if (num <= 1) return '';
+  return '$rarity%';
 }
 
 Color _versionTagColor(String game) {
@@ -3345,25 +3413,21 @@ class LocationDetailSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final scheme  = Theme.of(context).colorScheme;
-    final method  = enc['method']   as String? ?? '';
-    final minLv   = enc['minLevel'] as String? ?? '';
-    final maxLv   = enc['maxLevel'] as String? ?? '';
-    final rarity  = enc['rarity']   as String? ?? '';
-    final time    = enc['time']     as String? ?? '';
-    final weather = enc['weather']  as String? ?? '';
+    final method  = enc['method']  as String? ?? '';
+    final levels  = enc['levels']  as String? ?? '';
+    final rarity  = enc['rarity']  as String? ?? '';
+    final time    = enc['time']    as String? ?? '';
+    final weather = enc['weather'] as String? ?? '';
 
     final display = _locationChipText(enc);
 
     final details = <_LocDetailRow>[
       _LocDetailRow('Método', _translateMethod(method)),
     ];
-    if (minLv.isNotEmpty) {
-      final lvStr = (maxLv.isNotEmpty && maxLv != minLv)
-          ? '$minLv – $maxLv'
-          : minLv;
-      details.add(_LocDetailRow('Nível', lvStr));
-    }
-    if (rarity.isNotEmpty) details.add(_LocDetailRow('Raridade', rarity));
+    final lvStr = _formatLevels(levels);
+    if (lvStr.isNotEmpty) details.add(_LocDetailRow('Nível', lvStr));
+    final rarityStr = _formatRarity(rarity, method);
+    if (rarityStr.isNotEmpty) details.add(_LocDetailRow('Raridade', rarityStr));
     final timePt = encounterTimePt(time);
     if (time.isNotEmpty &&
         timePt != 'Dia' && timePt != 'Dia Todo' && timePt != 'Sempre') {
